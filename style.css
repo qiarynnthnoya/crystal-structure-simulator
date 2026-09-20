@@ -1,0 +1,174 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #0b0f14;
+    color: white;
+    min-height: 100vh;
+}
+
+header {
+    padding: 30px 50px;
+    border-bottom: 1px solid #26313d;
+}
+
+header h1 {
+    font-size: 32px;
+}
+
+header p {
+    margin-top: 8px;
+    color: #8fa3b8;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 25px;
+    padding: 30px 50px;
+}
+
+.simulator {
+    height: 600px;
+    background: #111820;
+    border: 1px solid #26313d;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.info-panel {
+    background: #111820;
+    border: 1px solid #26313d;
+    border-radius: 16px;
+    padding: 25px;
+}
+
+.structure-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.structure-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #344454;
+    border-radius: 8px;
+    background: #18222d;
+    color: white;
+    cursor: pointer;
+}
+
+.structure-buttons button:hover {
+    background: #243444;
+}
+
+.info-panel h2 {
+    margin-bottom: 15px;
+}
+
+.info-item {
+    margin-bottom: 15px;
+}
+
+.label {
+    color: #8fa3b8;
+    font-size: 13px;
+}
+
+.value {
+    margin-top: 4px;
+    font-size: 17px;
+} 
+.structure-buttons button.active {
+    background: #9b59b6;
+    color: white;
+    border-color: #9b59b6;
+    box-shadow: 0 0 15px rgba(155, 89, 182, 0.5);
+}
+/* ============================================================
+   VISUAL CONTROLS
+   ============================================================ */
+
+.visual-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    justify-content: center;
+}
+
+.control-button {
+    padding: 9px 14px;
+    border: 1px solid #555;
+    border-radius: 8px;
+    background: #1b1b1b;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.control-button:hover {
+    border-color: #9b59b6;
+    color: white;
+}
+
+.control-button.active {
+    background: #9b59b6;
+    color: white;
+    border-color: #9b59b6;
+    box-shadow: 0 0 12px rgba(155, 89, 182, 0.45);
+}
+/* =========================================================
+   UNIT-CELL CONTRIBUTION INFO
+   ========================================================= */
+
+.contribution-info {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(155, 89, 182, 0.08);
+    border: 1px solid rgba(155, 89, 182, 0.35);
+}
+
+.contribution-info h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.contribution-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.contribution-row span {
+    color: #c8c8c8;
+}
+
+.contribution-row strong {
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+.contribution-total {
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 14px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.contribution-total strong {
+    color: #9b59b6;
+}
