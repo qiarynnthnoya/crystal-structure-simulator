@@ -20,11 +20,17 @@ const crystalGroup = new THREE.Group();
 const bondGroup = new THREE.Group();
 const unitCellGroup = new THREE.Group();
 const labelGroup = new THREE.Group();
+const neighborCellGroup = new THREE.Group();
+const neighborAtomGroup = new THREE.Group();
+const neighborBondGroup = new THREE.Group();
 
 scene.add(crystalGroup);
 scene.add(bondGroup);
 scene.add(unitCellGroup);
 scene.add(labelGroup);
+scene.add(neighborCellGroup);
+scene.add(neighborAtomGroup);
+scene.add(neighborBondGroup);
 
 // ---------------------------------------------------------
 // CAMERA
@@ -100,12 +106,13 @@ controls.zoomSpeed = 0.6;
 // ---------------------------------------------------------
 
 const COLORS = {
-    Na: 0x9b59b6,
-    Cl: 0x5ee37b,
+    Na: 0xffff00,
+    Cl: 0x9b59b6,
     Diamond: 0x62d9ff,
     Bond: 0xffffff,
     Cell: 0xffffff,
-    Label: 0xffffff
+    Label: 0xffffff,
+    NeighborCell: 0x96b7ed
 };
 
 // ---------------------------------------------------------
@@ -116,6 +123,7 @@ let currentStructure = "NaCl";
 
 let contributionMode = false;
 let labelsVisible = true;
+let neighborsVisible = false;
 
 let currentCellType = "cubic";
 
@@ -484,7 +492,705 @@ function buildHCPUnitCell(
 
     unitCellGroup.add(cell);
 }
+/* =========================================================
+   NEIGHBORING UNIT CELLS
+   ========================================================= */
 
+function addCubicNeighborCell(size, center, opacity = 0.18) {
+    const geometry = new THREE.BoxGeometry(size, size, size);
+    const edges = new THREE.EdgesGeometry(geometry);
+
+    const material = new THREE.LineBasicMaterial({
+        color: COLORS.NeighborCell,
+        transparent: true,
+        opacity: opacity
+    });
+
+    const cell = new THREE.LineSegments(edges, material);
+
+    cell.position.copy(center);
+
+    neighborCellGroup.add(cell);
+}
+
+function addGhostAtoms(offset) {
+    currentAtoms.forEach(atom => {
+        const geometry = new THREE.SphereGeometry(
+            atom.radius,
+            16,
+            16
+        );
+
+        const material = new THREE.MeshStandardMaterial({
+            color: atom.mesh.userData.originalColor,
+            roughness: 0.45,
+            metalness: 0.05,
+            transparent: true,
+            opacity: 0.08,
+            depthWrite: false
+        });
+
+        const ghost = new THREE.Mesh(geometry, material);
+
+        ghost.position.copy(atom.position).add(offset);
+
+        neighborAtomGroup.add(ghost);
+    });
+}
+function addGhostBond(start, end) {
+    const direction = new THREE.Vector3()
+        .subVectors(end, start);
+
+    const length = direction.length();
+
+    if (length === 0) {
+        return;
+    }
+
+    const geometry =
+        new THREE.CylinderGeometry(
+            0.025,
+            0.025,
+            length,
+            8
+        );
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: COLORS.Bond,
+            transparent: true,
+            opacity: 0.08,
+            depthWrite: false
+        });
+
+    const bond =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    const midpoint =
+        new THREE.Vector3()
+            .addVectors(start, end)
+            .multiplyScalar(0.5);
+
+    bond.position.copy(midpoint);
+
+    bond.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        direction.normalize()
+    );
+
+    neighborBondGroup.add(bond);
+}
+function addHCPNeighborCell(a, c, offset) {
+
+    const points = [];
+
+    const radius = a;
+
+    // bottom hexagon
+    for (let i = 0; i < 6; i++) {
+
+        const angle =
+            i * Math.PI / 3;
+
+        points.push(
+            new THREE.Vector3(
+                radius * Math.cos(angle),
+                radius * Math.sin(angle),
+                -c / 2
+            ).add(offset)
+        );
+
+    }
+
+    // top hexagon
+    for (let i = 0; i < 6; i++) {
+
+        const angle =
+            i * Math.PI / 3;
+
+        points.push(
+            new THREE.Vector3(
+                radius * Math.cos(angle),
+                radius * Math.sin(angle),
+                c / 2
+            ).add(offset)
+        );
+
+    }
+
+    const material =
+        new THREE.LineBasicMaterial({
+            color: COLORS.NeighborCell,
+            transparent: true,
+            opacity: 0.12
+        });
+
+    // bottom hexagon
+    for (let i = 0; i < 6; i++) {
+
+        const geometry =
+            new THREE.BufferGeometry().setFromPoints([
+                points[i],
+                points[(i + 1) % 6]
+            ]);
+
+        const line =
+            new THREE.Line(
+                geometry,
+                material
+            );
+
+        neighborCellGroup.add(line);
+    }
+
+    // top hexagon
+    for (let i = 0; i < 6; i++) {
+
+        const geometry =
+            new THREE.BufferGeometry().setFromPoints([
+                points[6 + i],
+                points[6 + ((i + 1) % 6)]
+            ]);
+
+        const line =
+            new THREE.Line(
+                geometry,
+                material
+            );
+
+        neighborCellGroup.add(line);
+    }
+
+    // vertical edges
+    for (let i = 0; i < 6; i++) {
+
+        const geometry =
+            new THREE.BufferGeometry().setFromPoints([
+                points[i],
+                points[i + 6]
+            ]);
+
+        const line =
+            new THREE.Line(
+                geometry,
+                material
+            );
+
+        neighborCellGroup.add(line);
+    }
+}
+function buildNeighborCells() {
+    clearNeighborCells();
+
+    if (!neighborsVisible) {
+        return;
+    }
+
+    // =====================================================
+    // NaCl
+    // =====================================================
+
+    if (currentStructure === "NaCl") {
+
+        const a = 2;
+
+        const boundaryOffsets = [
+            new THREE.Vector3(a, 0, 0),
+            new THREE.Vector3(-a, 0, 0),
+            new THREE.Vector3(0, a, 0),
+            new THREE.Vector3(0, -a, 0),
+            new THREE.Vector3(0, 0, a),
+            new THREE.Vector3(0, 0, -a)
+        ];
+
+        boundaryOffsets.forEach(offset => {
+
+            addGhostAtoms(offset);
+
+            currentAtoms.forEach(atom => {
+
+                const neighborPosition =
+                    atom.position.clone().add(offset);
+
+                addGhostBond(
+                    atom.position,
+                    neighborPosition
+                );
+
+            });
+
+        });
+
+    }
+
+    // =====================================================
+    // HCP
+    // =====================================================
+
+    else if (currentStructure === "HCP") {
+
+    const a = 1.6;
+    const c = a * Math.sqrt(8 / 3);
+
+    // ==============================================
+    // HCP NEIGHBOR CELLS
+    // ==============================================
+
+    const basalOffsets = [];
+
+const neighborDistance =
+    Math.sqrt(3) * a;
+
+for (let i = 0; i < 6; i++) {
+
+    const angle =
+        Math.PI / 6 +
+        i * Math.PI / 3;
+
+    basalOffsets.push(
+        new THREE.Vector3(
+            neighborDistance *
+                Math.cos(angle),
+
+            neighborDistance *
+                Math.sin(angle),
+
+            0
+        )
+    );
+}
+
+    // ==============================================
+    // 6 NEIGHBOR HEXAGONS AROUND CENTRAL CELL
+    // ==============================================
+
+    basalOffsets.forEach(offset => {
+
+        addHCPNeighborCell(
+            a,
+            c,
+            offset
+        );
+
+    });
+
+    // ==============================================
+    // TOP & BOTTOM NEIGHBOR CELLS
+    // ==============================================
+
+    addHCPNeighborCell(
+        a,
+        c,
+        new THREE.Vector3(0, 0, c)
+    );
+
+    addHCPNeighborCell(
+        a,
+        c,
+        new THREE.Vector3(0, 0, -c)
+    );
+
+    // ==============================================
+    // GHOST ATOMS
+    // ==============================================
+
+    function addHCPGhostAtom(
+        position,
+        color
+    ) {
+
+        const geometry =
+            new THREE.SphereGeometry(
+                0.27,
+                16,
+                16
+            );
+
+        const material =
+            new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.45,
+                metalness: 0.05,
+                transparent: true,
+                opacity: 0.08,
+                depthWrite: false
+            });
+
+        const ghost =
+            new THREE.Mesh(
+                geometry,
+                material
+            );
+
+        ghost.position.copy(position);
+
+        neighborAtomGroup.add(ghost);
+
+        return ghost;
+    }
+
+    // ==============================================
+    // BASAL GHOST ATOMS
+    // ==============================================
+
+    const cornerAtoms =
+        currentAtoms.filter(
+            atom =>
+                atom.category === "corner"
+        );
+
+    basalOffsets.forEach(offset => {
+
+        cornerAtoms.forEach(atom => {
+
+            const position =
+                atom.position.clone().add(offset);
+
+            // hanya atom yang benar-benar berada
+            // dekat dengan boundary pusat
+            if (
+                Math.abs(position.x) < a * 2.2 &&
+                Math.abs(position.y) < a * 2.2
+            ) {
+
+                const ghost =
+                    addHCPGhostAtom(
+                        position,
+                        atom.mesh.material.color.getHex()
+                    );
+
+                // cari atom pusat terdekat
+                let nearest = null;
+                let minDistance = Infinity;
+
+                currentAtoms.forEach(
+                    centralAtom => {
+
+                        const distance =
+                            centralAtom.position.distanceTo(
+                                ghost.position
+                            );
+
+                        if (
+                            distance < minDistance &&
+                            distance > 0.01
+                        ) {
+                            minDistance =
+                                distance;
+
+                            nearest =
+                                centralAtom;
+                        }
+
+                    }
+                );
+
+                if (
+                    nearest &&
+                    minDistance <= a * 1.15
+                ) {
+
+                    addGhostBond(
+                        nearest.position,
+                        ghost.position
+                    );
+
+                }
+
+            }
+
+        });
+
+    });
+
+    // ==============================================
+    // TOP / BOTTOM GHOST ATOMS
+    // ==============================================
+
+    const verticalOffsets = [
+        new THREE.Vector3(0, 0, c),
+        new THREE.Vector3(0, 0, -c)
+    ];
+
+    verticalOffsets.forEach(offset => {
+
+        currentAtoms.forEach(atom => {
+
+            // hanya atom pada permukaan atas/bawah
+            if (
+                Math.abs(
+                    Math.abs(atom.position.z) -
+                    c / 2
+                ) > 0.01
+            ) {
+                return;
+            }
+
+            const position =
+                atom.position.clone().add(offset);
+
+            const ghost =
+                addHCPGhostAtom(
+                    position,
+                    atom.mesh.material.color.getHex()
+                );
+
+            // cari atom pusat terdekat
+            let nearest = null;
+            let minDistance = Infinity;
+
+            currentAtoms.forEach(
+                centralAtom => {
+
+                    const distance =
+                        centralAtom.position.distanceTo(
+                            ghost.position
+                        );
+
+                    if (
+                        distance < minDistance &&
+                        distance > 0.01
+                    ) {
+
+                        minDistance =
+                            distance;
+
+                        nearest =
+                            centralAtom;
+
+                    }
+
+                }
+            );
+
+            if (
+                nearest &&
+                minDistance <= a * 1.15
+            ) {
+
+                addGhostBond(
+                    nearest.position,
+                    ghost.position
+                );
+
+            }
+
+        });
+
+    });
+}
+    // =====================================================
+    // Diamond
+    // =====================================================
+
+    else if (currentStructure === "Diamond") {
+
+        const a = 2;
+
+        // Neighboring cubic cells
+        const offsets = [
+            new THREE.Vector3(a, 0, 0),
+            new THREE.Vector3(-a, 0, 0),
+
+            new THREE.Vector3(0, a, 0),
+            new THREE.Vector3(0, -a, 0),
+
+            new THREE.Vector3(0, 0, a),
+            new THREE.Vector3(0, 0, -a)
+        ];
+
+        // -------------------------------------------------
+        // Neighbor unit cells
+        // -------------------------------------------------
+
+        offsets.forEach(offset => {
+
+            addCubicNeighborCell(
+                a,
+                new THREE.Vector3(
+                    a / 2 + offset.x,
+                    a / 2 + offset.y,
+                    a / 2 + offset.z
+                )
+            );
+
+        });
+
+        // -------------------------------------------------
+        // Ghost atoms
+        // Only atoms on the shared boundary
+        // -------------------------------------------------
+
+        offsets.forEach(offset => {
+
+            currentAtoms.forEach(atom => {
+
+                const p = atom.position;
+
+                let onBoundary = false;
+
+                // +X face
+                if (
+                    offset.x > 0 &&
+                    Math.abs(p.x - a) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                // -X face
+                if (
+                    offset.x < 0 &&
+                    Math.abs(p.x) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                // +Y face
+                if (
+                    offset.y > 0 &&
+                    Math.abs(p.y - a) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                // -Y face
+                if (
+                    offset.y < 0 &&
+                    Math.abs(p.y) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                // +Z face
+                if (
+                    offset.z > 0 &&
+                    Math.abs(p.z - a) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                // -Z face
+                if (
+                    offset.z < 0 &&
+                    Math.abs(p.z) < 0.001
+                ) {
+                    onBoundary = true;
+                }
+
+                if (!onBoundary) {
+                    return;
+                }
+
+                const ghostPosition =
+                    atom.position.clone().add(offset);
+
+                // Ghost atom
+                const geometry =
+                    new THREE.SphereGeometry(
+                        atom.radius,
+                        16,
+                        16
+                    );
+
+                const material =
+                    new THREE.MeshStandardMaterial({
+                        color:
+                            atom.mesh.material.color.getHex(),
+                        roughness: 0.45,
+                        metalness: 0.05,
+                        transparent: true,
+                        opacity: 0.08,
+                        depthWrite: false
+                    });
+
+                const ghost =
+                    new THREE.Mesh(
+                        geometry,
+                        material
+                    );
+
+                ghost.position.copy(
+                    ghostPosition
+                );
+
+                neighborAtomGroup.add(
+                    ghost
+                );
+
+                // -------------------------------------------------
+                // Ghost bond
+                // -------------------------------------------------
+
+                const nearestDistance =
+                    a * Math.sqrt(3) / 4;
+
+                let nearestAtom = null;
+                let minDistance = Infinity;
+
+                currentAtoms.forEach(
+                    centralAtom => {
+
+                        const distance =
+                            centralAtom.position.distanceTo(
+                                ghostPosition
+                            );
+
+                        if (
+                            distance < minDistance &&
+                            distance > 0.01
+                        ) {
+
+                            minDistance =
+                                distance;
+
+                            nearestAtom =
+                                centralAtom;
+                        }
+                    }
+                );
+
+                if (
+                    nearestAtom &&
+                    Math.abs(
+                        minDistance -
+                        nearestDistance
+                    ) < 0.08
+                ) {
+
+                    addGhostBond(
+                        nearestAtom.position,
+                        ghostPosition
+                    );
+                }
+
+            });
+
+        });
+    }
+    // =====================================================
+    // Visibility
+    // =====================================================
+
+    neighborCellGroup.visible =
+        neighborsVisible &&
+        unitCellGroup.visible;
+
+    neighborAtomGroup.visible =
+        neighborsVisible &&
+        crystalGroup.visible;
+
+    neighborBondGroup.visible =
+        neighborsVisible &&
+        bondGroup.visible;
+}
+function clearNeighborCells() {
+    clearGroup(neighborCellGroup);
+    clearGroup(neighborAtomGroup);
+    clearGroup(neighborBondGroup);
+}
 // =========================================================
 // CLIPPING PLANES
 // =========================================================
@@ -1675,6 +2381,133 @@ function updateContributionInfo() {
 
 }
 // =========================================================
+// ATOMIC PACKING FACTOR (APF)
+// =========================================================
+
+function updateAPFInfo() {
+
+    const calculation =
+        document.getElementById(
+            "apf-calculation"
+        );
+
+    if (!calculation) {
+        return;
+    }
+
+    // -----------------------------------------------------
+    // NaCl
+    // -----------------------------------------------------
+
+    if (currentStructure === "NaCl") {
+
+        calculation.innerHTML = `
+            <div class="apf-formula">
+
+                <strong>NaCl</strong>
+
+                <p>
+                    APF =
+                    V<sub>ion</sub> /
+                    V<sub>sel</sub>
+                </p>
+
+                <p>
+                    =
+                    [4(4/3 π r<sub>Na</sub><sup>3</sup>)
+                    + 4(4/3 π r<sub>Cl</sub><sup>3</sup>)]
+                    / a<sup>3</sup>
+                </p>
+
+                <p>
+                    Dengan
+                    a = 2(r<sub>Na</sub> + r<sub>Cl</sub>),
+                    r<sub>Na</sub> = 0.102 nm,
+                    r<sub>Cl</sub> = 0.181 nm
+                </p>
+
+                <p>
+                    APF ≈ 0.646
+                    = <strong>64.6%</strong>
+                </p>
+
+            </div>
+        `;
+
+    }
+
+    // -----------------------------------------------------
+    // HCP
+    // -----------------------------------------------------
+
+    else if (currentStructure === "HCP") {
+
+        calculation.innerHTML = `
+            <div class="apf-formula">
+
+                <strong>HCP</strong>
+
+                <p>
+                    APF =
+                    [6(4/3 π r<sup>3</sup>)]
+                    /
+                    [(3√3/2)a<sup>2</sup>c]
+                </p>
+
+                <p>
+                    Dengan
+                    r = a/2
+                    dan
+                    c/a = √(8/3)
+                </p>
+
+                <p>
+                    APF =
+                    π/(3√2)
+                    ≈ <strong>74.05%</strong>
+                </p>
+
+            </div>
+        `;
+
+    }
+
+    // -----------------------------------------------------
+    // Diamond
+    // -----------------------------------------------------
+
+    else if (currentStructure === "Diamond") {
+
+        calculation.innerHTML = `
+            <div class="apf-formula">
+
+                <strong>Diamond</strong>
+
+                <p>
+                    APF =
+                    [8(4/3 π r<sup>3</sup>)]
+                    / a<sup>3</sup>
+                </p>
+
+                <p>
+                    Dengan
+                    r = (√3/8)a
+                </p>
+
+                <p>
+                    APF =
+                    π√3/16
+                    ≈ <strong>34.01%</strong>
+                </p>
+
+            </div>
+        `;
+
+    }
+
+}
+
+// =========================================================
 // CONTRIBUTION MODE
 // =========================================================
 
@@ -1902,6 +2735,7 @@ structureButtons.forEach(button => {
                 structure;
 
             clearCrystal();
+            clearNeighborCells();
 
             if (structure === "NaCl") {
 
@@ -1920,11 +2754,13 @@ structureButtons.forEach(button => {
                 buildDiamond();
 
             }
+            buildNeighborCells();
             updateInfo(
     structure
 );
 updateContributionInfo();
 updateContributionMode();
+updateAPFInfo();
 
         }
     );
@@ -1954,6 +2790,10 @@ const contributionButton =
     document.getElementById(
         "toggle-contribution"
     );
+const neighborsButton =
+    document.getElementById(
+        "toggle-neighbors"
+    );
 
 const resetButton =
     document.getElementById(
@@ -1970,6 +2810,8 @@ atomsButton.addEventListener(
 
         crystalGroup.visible =
             !crystalGroup.visible;
+            neighborAtomGroup.visible =
+    neighborsVisible && crystalGroup.visible;
 
         atomsButton.classList.toggle(
             "active",
@@ -2013,10 +2855,30 @@ cellButton.addEventListener(
             "active",
             unitCellGroup.visible
         );
+        neighborCellGroup.visible =
+    neighborsVisible && unitCellGroup.visible;
 
     }
 );
+// ---------------------------------------------------------
+// NEIGHBOR CELLS
+// ---------------------------------------------------------
 
+neighborsButton.addEventListener(
+    "click",
+    () => {
+
+        neighborsVisible =
+            !neighborsVisible;
+
+        neighborsButton.classList.toggle(
+            "active",
+            neighborsVisible
+        );
+
+        buildNeighborCells();
+    }
+);
 // ---------------------------------------------------------
 // CONTRIBUTION MODE
 // ---------------------------------------------------------
@@ -2151,10 +3013,9 @@ function animate() {
 // =========================================================
 
 buildNaCl();
-
 updateInfo("NaCl");
-
 updateContributionInfo();
+updateAPFInfo();
 
 atomsButton.classList.add(
     "active"

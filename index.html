@@ -12,138 +12,306 @@
 
 <body>
 
+    <!-- =========================
+         HEADER
+         ========================= -->
+
     <header>
-        <h1>Crystal Structure Simulator</h1>
-        <p>Interactive 3D visualization of crystal structures</p>
+
+        <h1>
+            Crystal Structure Simulator
+        </h1>
+
+        <p>
+            Interactive 3D visualization of crystal structures
+        </p>
+
+        <p>
+            Tugas Fisika Zat Padat Kelompok 2
+        </p>
+
     </header>
+
+
+    <!-- =========================
+         MAIN
+         ========================= -->
 
     <main>
 
+        <!-- =========================
+             SIMULATOR
+             ========================= -->
+
         <section>
 
+            <!-- STRUCTURE BUTTONS -->
+
             <div class="structure-buttons">
-                <button>NaCl</button>
-                <button>HCP</button>
-                <button>Diamond</button>
+
+                <button class="active">
+                    NaCl
+                </button>
+
+                <button>
+                    HCP
+                </button>
+
+                <button>
+                    Diamond
+                </button>
+
             </div>
 
+
+            <!-- 3D SIMULATOR -->
+
             <div class="simulator">
-                <!-- Our 3D simulation will appear here -->
-                 <div class="visual-controls">
-    <button id="toggle-atoms" class="control-button active">⚛ Atoms</button>
-    <button id="toggle-bonds" class="control-button active">🔗 Bonds</button>
-    <button id="toggle-cell" class="control-button active">⬡ Unit Cell</button>
-    <button id="toggle-contribution" class="control-button">◐ Contribution</button>
-    <button id="reset-camera" class="control-button">↻ Reset View</button>
-</div>
+
+                <div class="visual-controls">
+
+                    <button
+                        id="toggle-atoms"
+                        class="control-button active"
+                    >
+                        ⚛ Atoms
+                    </button>
+
+                    <button
+                        id="toggle-bonds"
+                        class="control-button active"
+                    >
+                        🔗 Bonds
+                    </button>
+
+                    <button
+                        id="toggle-cell"
+                        class="control-button active"
+                    >
+                        ⬡ Unit Cell
+                    </button>
+
+                    <!-- NEW: NEIGHBORING CELLS -->
+
+                    <button
+                        id="toggle-neighbors"
+                        class="control-button"
+                    >
+                        ◫ Neighbor
+                    </button>
+
+                    <button
+                        id="toggle-contribution"
+                        class="control-button"
+                    >
+                        ◐ Contribution
+                    </button>
+
+                    <button
+                        id="reset-camera"
+                        class="control-button"
+                    >
+                        ↻ Reset View
+                    </button>
+
+                </div>
+
+            </div>
+
         </section>
+
+
+        <!-- =========================
+             INFORMATION PANEL
+             ========================= -->
 
         <aside class="info-panel">
 
-            <h2 id="structure-name">NaCl</h2>
+            <h2 id="structure-name">
+                NaCl
+            </h2>
 
-            <p id="structure-subtitle" class="structure-subtitle">
+            <p
+                id="structure-subtitle"
+                class="structure-subtitle"
+            >
                 Struktur Garam Batu
             </p>
+
+
+            <!-- BASIC INFORMATION -->
 
             <div class="academic-info">
 
                 <div class="info-item">
-                    <span>Sistem Kristal</span>
-                    <strong id="crystal-system">Kubik</strong>
+
+                    <span>
+                        Sistem Kristal
+                    </span>
+
+                    <strong id="crystal-system">
+                        Kubik
+                    </strong>
+
                 </div>
 
+
                 <div class="info-item">
-                    <span>Kisi</span>
+
+                    <span>
+                        Kisi
+                    </span>
+
                     <strong id="lattice-type">
                         Face-Centered Cubic (FCC)
                     </strong>
+
                 </div>
 
-                <div class="info-item">
-                    <span>Atom / Sel Satuan</span>
-                    <strong id="atoms-per-cell">8 ion</strong>
-                </div>
 
                 <div class="info-item">
-                    <span>Bilangan Koordinasi</span>
-                    <strong id="coordination-number">6</strong>
+
+                    <span>
+                        Atom / Sel Satuan
+                    </span>
+
+                    <strong id="atoms-per-cell">
+                        8 ion
+                    </strong>
+
                 </div>
 
+
                 <div class="info-item">
-                    <span>Jenis Struktur</span>
+
+                    <span>
+                        Bilangan Koordinasi
+                    </span>
+
+                    <strong id="coordination-number">
+                        6
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        Jenis Struktur
+                    </span>
+
                     <strong id="structure-type">
                         Kristal Ionik
                     </strong>
+
                 </div>
 
-                <div class="info-item">
-                    <span>Fraksi Kemasan</span>
-                    <strong id="packing">≈ 52%</strong>
-                </div>
 
                 <div class="info-item">
-                    <span>Jenis Ikatan</span>
-                    <strong id="bonding-type">Ionik</strong>
+
+                    <span>
+                        Fraksi Kemasan / APF
+                    </span>
+
+                    <strong id="packing">
+                        ≈ 52,4%
+                    </strong>
+
                 </div>
 
+
                 <div class="info-item">
-                    <span>Parameter Kisi</span>
+
+                    <span>
+                        Jenis Ikatan
+                    </span>
+
+                    <strong id="bonding-type">
+                        Ionik
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        Parameter Kisi
+                    </span>
+
                     <strong id="lattice-parameter">
                         a = 2(r<sub>Na+</sub> + r<sub>Cl−</sub>)
                     </strong>
+
                 </div>
 
             </div>
 
+
+            <!-- DESCRIPTION -->
+
             <div class="description-section">
 
-                <h3>Deskripsi</h3>
+                <h3>
+                    Deskripsi
+                </h3>
 
                 <p id="structure-description">
-                    NaCl memiliki struktur garam batu yang
-                    terdiri dari dua subkisi Face-Centered
-                    Cubic (FCC) yang saling berpenetrasi.
-                    Setiap ion memiliki enam ion bermuatan
-                    berlawanan sebagai tetangga terdekat.
+
+                    NaCl memiliki struktur garam batu
+                    yang terdiri dari dua subkisi
+                    Face-Centered Cubic (FCC)
+                    yang saling berpenetrasi.
+
+                    Setiap ion memiliki enam ion
+                    bermuatan berlawanan sebagai
+                    tetangga terdekat.
+
                 </p>
 
             </div>
 
+
+            <!-- CONTRIBUTION -->
+
             <div class="contribution-info">
 
-                <h3>Kontribusi Sel Satuan</h3>
+                <h3>
+                    Kontribusi Sel Satuan
+                </h3>
 
-                <div id="contribution-calculation"></div>
+                <div id="contribution-calculation">
+                </div>
+
+            </div>
+
+
+            <!-- APF -->
+
+            <div class="apf-info">
+
+                <h3>
+                    Atomic Packing Factor (APF)
+                </h3>
+
+                <div id="apf-calculation">
+                </div>
 
             </div>
 
         </aside>
 
-    <div class="info-item">
-        <span>Packing</span>
-        <strong id="packing">74%</strong>
-    </div>
-
-    <p id="structure-description">
-        NaCl has a rock-salt crystal structure consisting of two
-        interpenetrating face-centered cubic sublattices.
-        Each Na⁺ ion is surrounded by six Cl⁻ ions.
-    </p>
-    <div id="contribution-info" class="contribution-info">
-    <h3>Unit-Cell Contribution</h3>
-
-    <div id="contribution-calculation">
-        Select Contribution mode to see the calculation.
-    </div>
-</div>
-
-</div>
-
-        </aside>
-
     </main>
-<script type="module" src="script.js"></script>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script
+        type="module"
+        src="script.js"
+    ></script>
+
 </body>
 
 </html>
