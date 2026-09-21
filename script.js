@@ -2601,7 +2601,7 @@ function updateInfo(structure) {
             "Kristal Ionik";
 
         packing.textContent =
-            "≈ 52%";
+            "≈ 64,6%";
 
         bonding.textContent =
             "Ionik";
